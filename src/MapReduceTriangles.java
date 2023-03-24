@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 public class MapReduceTriangles {
+        //Commento
         static final int p = 8191; // constant used to calculate hash function
         public static Long CountTriangles(ArrayList<Tuple2<Integer, Integer>> edgeSet) {
                 if (edgeSet.size()<3) return 0L;
