@@ -3,10 +3,17 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.storage.StorageLevel;
+
+import java.util.ArrayList;
 import java.util.Random;
 public class MapReduceTriangles {
         static final int p = 8191; // constant used to calculate hash function
         public int MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
+                ArrayList<String>[] edgesSets = new ArrayList[c]; //string ArrayList that represent the c sets of edges; each element is a set of edges
+                for(int i = 0; i < edges.count(); i++){
+
+                        int index = hashFunct(c, )
+                }
                 return 0;
         }
 
