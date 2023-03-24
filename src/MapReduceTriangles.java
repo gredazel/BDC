@@ -16,6 +16,7 @@ public class MapReduceTriangles {
          * @param u value of the considered vertex
          * @return hash function's value of vertex u
          */
+        /*CIAO*/
         private int hashFunct(int c, Integer u){
                 Random rand = new Random();
                 int a = rand.nextInt(p);
