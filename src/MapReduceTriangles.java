@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 public class MapReduceTriangles {
-
+        //Commento
         public static Long CountTriangles(ArrayList<Tuple2<Integer, Integer>> edgeSet) {
                 if (edgeSet.size()<3) return 0L;
                 HashMap<Integer, HashMap<Integer,Boolean>> adjacencyLists = new HashMap<>();
