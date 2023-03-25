@@ -5,9 +5,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 public class MapReduceTriangles {
         //Commento
         static final int p = 8191; // constant used to calculate hash function
@@ -42,11 +40,27 @@ public class MapReduceTriangles {
                 return numTriangles;
         }
         public int MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
-                ArrayList<String>[] edgesSets = new ArrayList[c]; //string ArrayList that represent the c sets of edges; each element is a set of edges
-                for(int i = 0; i < edges.count(); i++){
+                JavaPairRDD<Integer, String> subsets;
+                subsets = edges.flatMapToPair((document) -> {
+                        String[] tokens = document.split("\\r?\\n");
+                        ArrayList<String>[] edgesSets = new ArrayList[c]; //string ArrayList that represent the c sets of edges; each element is a set of edges
+                        for(String token : tokens){
+                                String verteces[] = token.split(",");
+                                int a = hashFunct(c, Integer.parseInt(verteces[0]));
+                                int b = hashFunct(c, Integer.parseInt(verteces[1]));
+                                if (a == b)
+                                        edgesSets[a].add(token);
+                        } // THIS is FOR CREATING THE C PARTITIONS AND PUT IN THEM ASSOCIATED EDGES
+                        ArrayList<Tuple2<String, Tuple2<Integer, Integer>>> pairs = new ArrayList<>();
+                        for(int i = 0; i < c; i++)
+                                for (String token : edgesSets[i]){
+                                        String verteces[] = token.split(",");
+                                        Tuple2<Integer, Integer> tuple = new Tuple2(Integer.parseInt(verteces[0]), Integer.parseInt(verteces[1]));
+                                        pairs.add(new Tuple2<>(Integer.toString(i), tuple)); //ok qui non sono PER NIENTE sicura che si faccia così... anzi...
+                                }
+                        return pairs.iterator();
+                }).reduceByKey((x, y) -> x+y); // end of first point round 1; don't know how to solve this error
 
-                        int index = hashFunct(c, )
-                }
                 return 0;
         }
 
