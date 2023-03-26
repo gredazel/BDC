@@ -51,15 +51,17 @@ public class MapReduceTriangles {
                                 if (a == b)
                                         edgesSets[a].add(token);
                         } // THIS is FOR CREATING THE C PARTITIONS AND PUT IN THEM ASSOCIATED EDGES
+                        
                         ArrayList<Tuple2<String, Tuple2<Integer, Integer>>> pairs = new ArrayList<>();
                         for(int i = 0; i < c; i++)
                                 for (String token : edgesSets[i]){
-                                        String verteces[] = token.split(",");
+                                        String[] verteces = token.split(",");
                                         Tuple2<Integer, Integer> tuple = new Tuple2(Integer.parseInt(verteces[0]), Integer.parseInt(verteces[1]));
                                         pairs.add(new Tuple2<>(Integer.toString(i), tuple)); //ok qui non sono PER NIENTE sicura che si faccia così... anzi...
                                 }
+
                         return pairs.iterator();
-                }).reduceByKey((x, y) -> x+y); // end of first point round 1; don't know how to solve this error
+                }).reduceByKey((x, y) -> y._1() + y._2()); // end of first point round 1; don't know how to solve this error
 
                 return 0;
         }
