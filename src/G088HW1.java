@@ -64,10 +64,9 @@ public class G088HW1 {
         Random rand = new Random();
         int a = rand.nextInt(p - 1) + 1;
         int b = rand.nextInt(p);
-        JavaPairRDD<Integer, Tuple2<Integer, Integer>> coloredEdges;
-        coloredEdges = edges.flatMapToPair((document) -> {
-            String[] tokens = document.split("\\r?\\n");
 
+        long totTriangles = edges.flatMapToPair((document) -> {
+            String[] tokens = document.split("\\r?\\n");
             ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>(); //string ArrayList that represent the c sets of edges; each element is a set of edges
             for(String token : tokens){
                 String verteces[] = token.split(",");
@@ -81,9 +80,7 @@ public class G088HW1 {
                 }
             } // THIS is FOR CREATING THE C PARTITIONS AND PUT IN THEM ASSOCIATED EDGES
             return edgesSets.iterator();
-        });//Map into <color, <v1, v2>>
-
-        JavaPairRDD<Integer, Long> counted = coloredEdges.groupByKey().mapToPair((e) ->{
+        }).groupByKey().mapToPair((e) ->{
             ArrayList<Tuple2<Integer, Integer>> E = new ArrayList<>();
             for(Tuple2<Integer, Integer> elem : e._2()){
                 E.add(elem);
@@ -91,12 +88,9 @@ public class G088HW1 {
             long tri = CountTriangles(E);
             System.out.println(tri);
             return new Tuple2<>(0, tri);
-        });
+        }).reduceByKey((x,y) -> x + y).first()._2();
 
-
-
-        long totTriangles = c*c * counted.reduceByKey((x,y) -> x + y).first()._2();
-        return totTriangles;
+        return totTriangles *c *c;
     }
 
     /**
