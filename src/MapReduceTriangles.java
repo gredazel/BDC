@@ -3,6 +3,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.storage.StorageLevel;
+import scala.Int;
 import scala.Tuple2;
 
 import java.util.*;
@@ -40,28 +41,24 @@ public class MapReduceTriangles {
                 return numTriangles;
         }
         public int MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
-                JavaPairRDD<Integer, String> subsets;
-                subsets = edges.flatMapToPair((document) -> {
+                JavaPairRDD<Integer, Long> triangles;
+                triangles = edges.flatMapToPair((document) -> {
+
                         String[] tokens = document.split("\\r?\\n");
-                        ArrayList<String>[] edgesSets = new ArrayList[c]; //string ArrayList that represent the c sets of edges; each element is a set of edges
+
+                        ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>(); //string ArrayList that represent the c sets of edges; each element is a set of edges
                         for(String token : tokens){
                                 String verteces[] = token.split(",");
-                                int a = hashFunct(c, Integer.parseInt(verteces[0]));
-                                int b = hashFunct(c, Integer.parseInt(verteces[1]));
+                                Integer a = hashFunct(c, Integer.parseInt(verteces[0]));
+                                Integer b = hashFunct(c, Integer.parseInt(verteces[1]));
+                                Tuple2<Integer, Integer> val = new Tuple2<>(a, b);
                                 if (a == b)
-                                        edgesSets[a].add(token);
+                                        edgesSets.add(new Tuple2<>(a, val));
                         } // THIS is FOR CREATING THE C PARTITIONS AND PUT IN THEM ASSOCIATED EDGES
-                        
-                        ArrayList<Tuple2<String, Tuple2<Integer, Integer>>> pairs = new ArrayList<>();
-                        for(int i = 0; i < c; i++)
-                                for (String token : edgesSets[i]){
-                                        String[] verteces = token.split(",");
-                                        Tuple2<Integer, Integer> tuple = new Tuple2(Integer.parseInt(verteces[0]), Integer.parseInt(verteces[1]));
-                                        pairs.add(new Tuple2<>(Integer.toString(i), tuple)); //ok qui non sono PER NIENTE sicura che si faccia così... anzi...
-                                }
+                        return edgesSets.iterator();
+                }).groupByKey().reduceByKey((e) -> {
 
-                        return pairs.iterator();
-                }).reduceByKey((x, y) -> y._1() + y._2()); // end of first point round 1; don't know how to solve this error
+                });
 
                 return 0;
         }
