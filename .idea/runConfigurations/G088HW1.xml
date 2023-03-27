@@ -2,7 +2,7 @@
   <configuration default="false" name="G088HW1" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="G088HW1" />
     <module name="BDC.main" />
-    <option name="PROGRAM_PARAMETERS" value="3 5 facebook_small.txt" />
+    <option name="PROGRAM_PARAMETERS" value="8 5 facebook_small.txt" />
     <option name="VM_PARAMETERS" value="-Dspark.master=&quot;local[*]&quot;" />
     <method v="2">
       <option name="Make" enabled="true" />

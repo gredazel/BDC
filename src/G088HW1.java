@@ -24,9 +24,23 @@ public class G088HW1 {
         SparkConf conf = new SparkConf(true).setAppName("Triangles");
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
+
         JavaRDD<String> docs = sc.textFile(filepath).repartition(8).cache();
-        for (int i = 0; i < R; i++)
-            System.out.println("Number of triangles =" + MR_ApproxTCwithNodeColors(C, docs));
+        System.out.println("Dataset = " + filepath);
+        System.out.println("Number of edges = " + docs.count());
+        System.out.println("Number of colors = " + C);
+        System.out.println("Number of repetitions = " + R);
+        ArrayList<Long> ColorApprox = new ArrayList<Long>();
+        long avgTime = 0;
+        for (int i = 0; i < R; i++){
+            long start = System.currentTimeMillis();
+            ColorApprox.add(MR_ApproxTCwithNodeColors(C, docs));
+            avgTime += System.currentTimeMillis() - start;
+        }
+        avgTime /= R;
+        System.out.println("Approximation through node coloring");
+        System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
+        System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
     }
 
     static final int p = 8191; // constant used to calculate hash function
@@ -67,7 +81,7 @@ public class G088HW1 {
 
         long totTriangles = edges.flatMapToPair((document) -> {
             String[] tokens = document.split("\\r?\\n");
-            ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>(); //string ArrayList that represent the c sets of edges; each element is a set of edges
+            ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
             for(String token : tokens){
                 String verteces[] = token.split(",");
                 int vert1 = Integer.parseInt(verteces[0]);
@@ -78,16 +92,14 @@ public class G088HW1 {
                 if (color1 == color2){
                     edgesSets.add(new Tuple2<>(color1, val));
                 }
-            } // THIS is FOR CREATING THE C PARTITIONS AND PUT IN THEM ASSOCIATED EDGES
+            }
             return edgesSets.iterator();
         }).groupByKey().mapToPair((e) ->{
             ArrayList<Tuple2<Integer, Integer>> E = new ArrayList<>();
             for(Tuple2<Integer, Integer> elem : e._2()){
                 E.add(elem);
             }
-            long tri = CountTriangles(E);
-            System.out.println(tri);
-            return new Tuple2<>(0, tri);
+            return new Tuple2<>(0, CountTriangles(E));
         }).reduceByKey((x,y) -> x + y).first()._2();
 
         return totTriangles *c *c;
