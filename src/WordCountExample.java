@@ -1,3 +1,4 @@
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -41,6 +42,9 @@ public class WordCountExample{
     // Read input file and subdivide it into K random partitions
     JavaRDD<String> docs = sc.textFile(args[1]).repartition(K).cache();
 
+      System.out.println("To String");
+      System.out.println(docs.toString());
+
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     // SETTING GLOBAL VARIABLES
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -52,7 +56,7 @@ public class WordCountExample{
     Random randomGenerator = new Random();
 
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-    // 1-ROUND WORD COUNT 
+    // 1-ROUND WORD COUNT
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
     wordCounts = docs

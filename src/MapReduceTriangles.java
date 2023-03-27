@@ -7,7 +7,6 @@ import scala.Tuple2;
 
 import java.util.*;
 public class MapReduceTriangles {
-        //Commento
         static final int p = 8191; // constant used to calculate hash function
         public static Long CountTriangles(ArrayList<Tuple2<Integer, Integer>> edgeSet) {
                 if (edgeSet.size()<3) return 0L;
@@ -39,30 +38,26 @@ public class MapReduceTriangles {
                 }
                 return numTriangles;
         }
-        public int MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
+        public static int MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
                 JavaPairRDD<Integer, String> subsets;
-                subsets = edges.flatMapToPair((document) -> {
-                        String[] tokens = document.split("\\r?\\n");
-                        ArrayList<String>[] edgesSets = new ArrayList[c]; //string ArrayList that represent the c sets of edges; each element is a set of edges
-                        for(String token : tokens){
-                                String verteces[] = token.split(",");
-                                int a = hashFunct(c, Integer.parseInt(verteces[0]));
-                                int b = hashFunct(c, Integer.parseInt(verteces[1]));
-                                if (a == b)
-                                        edgesSets[a].add(token);
-                        } // THIS is FOR CREATING THE C PARTITIONS AND PUT IN THEM ASSOCIATED EDGES
-                        ArrayList<Tuple2<String, Tuple2<Integer, Integer>>> pairs = new ArrayList<>();
-                        for(int i = 0; i < c; i++)
-                                for (String token : edgesSets[i]){
-                                        String verteces[] = token.split(",");
-                                        Tuple2<Integer, Integer> tuple = new Tuple2(Integer.parseInt(verteces[0]), Integer.parseInt(verteces[1]));
-                                        pairs.add(new Tuple2<>(Integer.toString(i), tuple)); //ok qui non sono PER NIENTE sicura che si faccia così... anzi...
-                                }
-                        return pairs.iterator();
-                }).reduceByKey((x, y) -> x+y); // end of first point round 1; don't know how to solve this error
+                subsets = edges.flatMapToPair((line) -> {
+                        String splitted[] = line.split(",");
+                        int hash_a = hashFunct(c, Integer.parseInt(splitted[0]));
+                        int hash_b = hashFunct(c, Integer.parseInt(splitted[1]));
+                        ArrayList<Tuple2<Integer, String>> edgesSets = new ArrayList<>(); //string ArrayList that represent the c sets of edges; each element is a set of edges
+                        if(hash_a == hash_b){
+                                edgesSets.add(new Tuple2<>(hash_a, line));
+                        }
+                        return edgesSets.iterator();
+                }); // end of first point round 1; don't know how to solve this error
+                for(Tuple2<Integer, String> line : subsets.collect()){
+                        System.out.println("Key: " + line._1 + " Value: " + line._2);
+                }
+
 
                 return 0;
         }
+
 
         /**
          * Calculate the value of the hash function of a given vertex u
@@ -70,10 +65,28 @@ public class MapReduceTriangles {
          * @param u value of the considered vertex
          * @return hash function's value of vertex u
          */
-        private int hashFunct(int c, Integer u){
+        private static int hashFunct(int c, Integer u){
                 Random rand = new Random();
                 int a = rand.nextInt(p);
                 int b = rand.nextInt(p);
                 return (((a*u)+b)%p)%c;
+        }
+
+        public static void main(String[] args){
+                if (args.length != 1) {
+                        throw new IllegalArgumentException("USAGE: num_partitions file_path");
+                }
+
+                SparkConf conf = new SparkConf(true).setAppName("WordCount");
+                JavaSparkContext sc = new JavaSparkContext(conf);
+                sc.setLogLevel("WARN");
+
+                JavaRDD<String> docs = sc.textFile(args[0]);
+
+                long numdocs = docs.count();
+                System.out.println("Number of documents = " + numdocs);
+                JavaPairRDD<String, Long> numberCounts;
+
+                MR_ApproxTCwithNodeColors(4, docs);
         }
 }
