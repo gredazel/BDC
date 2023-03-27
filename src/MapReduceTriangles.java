@@ -3,6 +3,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.storage.StorageLevel;
+import scala.Int;
 import scala.Tuple2;
 
 import java.util.*;
@@ -39,20 +40,54 @@ public class MapReduceTriangles {
                 return numTriangles;
         }
         public static int MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
-                JavaPairRDD<Integer, String> subsets;
+                Random rand = new Random();
+                int a = rand.nextInt(p-1) + 1;
+                int b = rand.nextInt(p);
+
+                JavaPairRDD<Integer, Tuple2<Integer, Integer>> subsets;
                 subsets = edges.flatMapToPair((line) -> {
                         String splitted[] = line.split(",");
-                        int hash_a = hashFunct(c, Integer.parseInt(splitted[0]));
-                        int hash_b = hashFunct(c, Integer.parseInt(splitted[1]));
-                        ArrayList<Tuple2<Integer, String>> edgesSets = new ArrayList<>(); //string ArrayList that represent the c sets of edges; each element is a set of edges
+                        int hash_a = hashFunct(a, b, c, Integer.parseInt(splitted[0]));
+                        int hash_b = hashFunct(a, b, c, Integer.parseInt(splitted[1]));
+                        ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>(); //string ArrayList that represent the c sets of edges; each element is a set of edges
                         if(hash_a == hash_b){
-                                edgesSets.add(new Tuple2<>(hash_a, line));
+                                edgesSets.add(new Tuple2<>(hash_a, new Tuple2<>(Integer.parseInt(splitted[0]), Integer.parseInt(splitted[1]))));
                         }
                         return edgesSets.iterator();
-                }); // end of first point round 1; don't know how to solve this error
-                for(Tuple2<Integer, String> line : subsets.collect()){
+                }); // end of first point round 1;
+                System.out.println("Number of elements of subsets: " + subsets.count());
+
+
+                System.out.println("Map Phase:");
+                int count = 0;/*
+                for(Tuple2<Integer, Tuple2<Integer, Integer>> line : subsets.collect()){
+                        System.out.println("Key: " + line._1 + " Value: " + line._2);
+                        if(count > 5) break;
+                        count++;
+                }*/
+
+                JavaPairRDD<Integer, Iterable<Tuple2<Integer, Integer>>> shuffle = subsets.groupByKey();
+
+                System.out.println("Shuffle Phase:");
+                count = 0;/*
+                for(Tuple2<Integer, Iterable<Tuple2<Integer, Integer>>> line : shuffle.collect()){
+                        System.out.println("Key: " + line._1 + " Value: " + line._2);
+                        if(count > 10) break;
+                        count++;
+                }*/
+
+                JavaPairRDD<Integer, Long> reduced = shuffle.mapValues((list) ->{
+                        ArrayList<Tuple2<Integer, Integer>> array = new ArrayList<>();
+                        for(Tuple2<Integer, Integer> l : list){
+                                array.add(l);
+                        }
+                        return CountTriangles(array);
+                });
+
+                for(Tuple2<Integer, Long> line : reduced.collect()){
                         System.out.println("Key: " + line._1 + " Value: " + line._2);
                 }
+
 
 
                 return 0;
@@ -65,10 +100,7 @@ public class MapReduceTriangles {
          * @param u value of the considered vertex
          * @return hash function's value of vertex u
          */
-        private static int hashFunct(int c, Integer u){
-                Random rand = new Random();
-                int a = rand.nextInt(p);
-                int b = rand.nextInt(p);
+        private static int hashFunct(int a, int b, int c, Integer u){
                 return (((a*u)+b)%p)%c;
         }
 
@@ -87,6 +119,6 @@ public class MapReduceTriangles {
                 System.out.println("Number of documents = " + numdocs);
                 JavaPairRDD<String, Long> numberCounts;
 
-                MR_ApproxTCwithNodeColors(4, docs);
+                MR_ApproxTCwithNodeColors(2, docs);
         }
 }
