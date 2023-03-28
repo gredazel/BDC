@@ -86,19 +86,17 @@ public class G088HW1 {
         int a = rand.nextInt(p - 1) + 1;
         int b = rand.nextInt(p);
 
-        long totTriangles = edges.flatMapToPair((document) -> {
-            String[] tokens = document.split("\\r?\\n");
+        long totTriangles = edges.flatMapToPair((token) -> {
+
             ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
-            for(String token : tokens){
-                String verteces[] = token.split(",");
-                int vert1 = Integer.parseInt(verteces[0]);
-                int vert2 = Integer.parseInt(verteces[1]);
-                int color1 = hashFunct(c, vert1, a, b);
-                int color2 = hashFunct(c, vert2, a, b);
-                Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
-                if (color1 == color2){
-                    edgesSets.add(new Tuple2<>(color1, val));
-                }
+            String verteces[] = token.split(",");
+            int vert1 = Integer.parseInt(verteces[0]);
+            int vert2 = Integer.parseInt(verteces[1]);
+            int color1 = hashFunct(c, vert1, a, b);
+            int color2 = hashFunct(c, vert2, a, b);
+            Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
+            if (color1 == color2){
+                edgesSets.add(new Tuple2<>(color1, val));
             }
             return edgesSets.iterator();
         }).groupByKey().mapToPair((e) ->{
@@ -113,21 +111,15 @@ public class G088HW1 {
     }
 
     public static long MR_ApproxTCwithSparkPartitions(int c, JavaRDD<String> edges){
-        long totalTriangles = 0L;
-
-        JavaPairRDD<Integer, Integer> notPartitioned = edges.flatMapToPair((document) -> {
-            String[] tokens = document.split("\\r?\\n");
+        return edges.flatMapToPair((token) -> {
             ArrayList<Tuple2<Integer, Integer>> edgesSets = new ArrayList<>();
-            for(String token : tokens){
-                String verteces[] = token.split(",");
-                int vert1 = Integer.parseInt(verteces[0]);
-                int vert2 = Integer.parseInt(verteces[1]);
-                Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
-                edgesSets.add(val);
-            }
+            String verteces[] = token.split(",");
+            int vert1 = Integer.parseInt(verteces[0]);
+            int vert2 = Integer.parseInt(verteces[1]);
+            Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
+            edgesSets.add(val);
             return edgesSets.iterator();
-        });
-        JavaPairRDD<Integer, Long> partitioned = notPartitioned.repartition(c).mapPartitionsToPair((edge) ->{
+        }).repartition(c).mapPartitionsToPair((edge) ->{
             ArrayList<Tuple2<Integer, Integer>> value = new ArrayList<>();
             while (edge.hasNext()){
                 value.add(edge.next());
@@ -135,9 +127,7 @@ public class G088HW1 {
             ArrayList<Tuple2<Integer, Long>> pair = new ArrayList<>();
             pair.add(new Tuple2<Integer, Long>(0, CountTriangles(value)));
             return pair.iterator();
-        });
-        totalTriangles = c*c * partitioned.reduceByKey((x, y) -> x + y).first()._2();
-        return totalTriangles;
+        }).reduceByKey((x, y) -> x + y).first()._2()* c * c;
     }
 
     /**
