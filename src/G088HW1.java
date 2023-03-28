@@ -1,4 +1,5 @@
 import javassist.bytecode.Descriptor;
+import org.apache.hadoop.mapred.Task;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -31,7 +32,7 @@ public class G088HW1 {
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
         ArrayList<Long> ColorApprox = new ArrayList<Long>();
-        long avgTime = 0;
+        long avgTime = 0L;
         for (int i = 0; i < R; i++){
             long start = System.currentTimeMillis();
             ColorApprox.add(MR_ApproxTCwithNodeColors(C, docs));
@@ -41,6 +42,12 @@ public class G088HW1 {
         System.out.println("Approximation through node coloring");
         System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
         System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
+        long Time2 = System.currentTimeMillis();
+        long repartitioned = MR_ApproxTCwithSparkPartitions(C, docs);
+        Time2 = System.currentTimeMillis() - Time2;
+        System.out.println("Approximation through Spark partitions");
+        System.out.println("- Number of triangles = " + repartitioned);
+        System.out.println("- Running time = " + Time2 + "ms");
     }
 
     static final int p = 8191; // constant used to calculate hash function
@@ -105,15 +112,42 @@ public class G088HW1 {
         return totTriangles *c *c;
     }
 
+    public static long MR_ApproxTCwithSparkPartitions(int c, JavaRDD<String> edges){
+        long totalTriangles = 0L;
+
+        JavaPairRDD<Integer, Integer> notPartitioned = edges.flatMapToPair((document) -> {
+            String[] tokens = document.split("\\r?\\n");
+            ArrayList<Tuple2<Integer, Integer>> edgesSets = new ArrayList<>();
+            for(String token : tokens){
+                String verteces[] = token.split(",");
+                int vert1 = Integer.parseInt(verteces[0]);
+                int vert2 = Integer.parseInt(verteces[1]);
+                Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
+                edgesSets.add(val);
+            }
+            return edgesSets.iterator();
+        });
+        JavaPairRDD<Integer, Long> partitioned = notPartitioned.repartition(c).mapPartitionsToPair((edge) ->{
+            ArrayList<Tuple2<Integer, Integer>> value = new ArrayList<>();
+            while (edge.hasNext()){
+                value.add(edge.next());
+            }
+            ArrayList<Tuple2<Integer, Long>> pair = new ArrayList<>();
+            pair.add(new Tuple2<Integer, Long>(0, CountTriangles(value)));
+            return pair.iterator();
+        });
+        totalTriangles = c*c * partitioned.reduceByKey((x, y) -> x + y).first()._2();
+        return totalTriangles;
+    }
+
     /**
      * Calculate the value of the hash function of a given vertex u
      * @param c integer parameter used to partition data
      * @param u value of the considered vertex
+     * @param a random integer in [1, p-1] fixed for every run
+     * @param b random integer in [0, p-1] fixed for every run
      * @return hash function's value of vertex u
      */
-
-
     private static int hashFunct(int c, Integer u, int a, int b){
         return (((a*u)+b)%p)%c;
-    }
-}
+    }}
