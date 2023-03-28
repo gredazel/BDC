@@ -9,10 +9,7 @@ import scala.Tuple2;
 import spire.macros.Auto;
 
 import javax.swing.text.html.HTMLDocument;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Random;
+import java.util.*;
 
 public class G088HW1 {
     public static void main(String[] args) {
@@ -27,19 +24,19 @@ public class G088HW1 {
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
 
-        JavaPairRDD<Integer, Integer> docs = MakeEdgeRDD(sc.textFile(filepath));
+        JavaPairRDD<Integer, Integer> docs = MakeEdgeRDD(sc.textFile(filepath)).cache();
 
         System.out.println("Dataset = " + filepath);
         System.out.println("Number of edges = " + docs.count());
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
         ArrayList<Long> ColorApprox = new ArrayList<Long>();
-        long avgTime = 0L;
+        long avgTime = System.currentTimeMillis();
         for (int i = 0; i < R; i++){
-            long start = System.currentTimeMillis();
             ColorApprox.add(MR_ApproxTCwithNodeColors(C, docs));
-            avgTime += System.currentTimeMillis() - start;
         }
+        Collections.sort(ColorApprox);
+        avgTime = System.currentTimeMillis() - avgTime;
         avgTime /= R;
         System.out.println("Approximation through node coloring");
         System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
