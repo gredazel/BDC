@@ -4,6 +4,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import scala.Int;
 import scala.Tuple2;
 import spire.macros.Auto;
 
@@ -26,7 +27,8 @@ public class G088HW1 {
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
 
-        JavaRDD<String> docs = sc.textFile(filepath).repartition(8).cache();
+        JavaPairRDD<Integer, Integer> docs = MakeEdgeRDD(sc.textFile(filepath));
+
         System.out.println("Dataset = " + filepath);
         System.out.println("Number of edges = " + docs.count());
         System.out.println("Number of colors = " + C);
@@ -81,7 +83,7 @@ public class G088HW1 {
         }
         return numTriangles;
     }
-    public static long MR_ApproxTCwithNodeColors(int c, JavaRDD<String> edges) {
+    public static long MR_ApproxTCwithNodeColors(int c, JavaPairRDD<Integer, Integer> edges) {
         Random rand = new Random();
         int a = rand.nextInt(p - 1) + 1;
         int b = rand.nextInt(p);
@@ -89,14 +91,10 @@ public class G088HW1 {
         long totTriangles = edges.flatMapToPair((token) -> {
 
             ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
-            String verteces[] = token.split(",");
-            int vert1 = Integer.parseInt(verteces[0]);
-            int vert2 = Integer.parseInt(verteces[1]);
-            int color1 = hashFunct(c, vert1, a, b);
-            int color2 = hashFunct(c, vert2, a, b);
-            Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
+            int color1 = hashFunct(c, token._1(), a, b);
+            int color2 = hashFunct(c, token._2(), a, b);;
             if (color1 == color2){
-                edgesSets.add(new Tuple2<>(color1, val));
+                edgesSets.add(new Tuple2<>(color1, token));
             }
             return edgesSets.iterator();
         }).groupByKey().mapToPair((e) ->{
@@ -110,16 +108,8 @@ public class G088HW1 {
         return totTriangles *c *c;
     }
 
-    public static long MR_ApproxTCwithSparkPartitions(int c, JavaRDD<String> edges){
-        return edges.flatMapToPair((token) -> {
-            ArrayList<Tuple2<Integer, Integer>> edgesSets = new ArrayList<>();
-            String verteces[] = token.split(",");
-            int vert1 = Integer.parseInt(verteces[0]);
-            int vert2 = Integer.parseInt(verteces[1]);
-            Tuple2<Integer, Integer> val = new Tuple2<>(vert1, vert2);
-            edgesSets.add(val);
-            return edgesSets.iterator();
-        }).repartition(c).mapPartitionsToPair((edge) ->{
+    public static long MR_ApproxTCwithSparkPartitions(int c, JavaPairRDD<Integer, Integer> edges){
+        return edges.repartition(c).mapPartitionsToPair((edge) ->{
             ArrayList<Tuple2<Integer, Integer>> value = new ArrayList<>();
             while (edge.hasNext()){
                 value.add(edge.next());
@@ -128,6 +118,14 @@ public class G088HW1 {
             pair.add(new Tuple2<Integer, Long>(0, CountTriangles(value)));
             return pair.iterator();
         }).reduceByKey((x, y) -> x + y).first()._2()* c * c;
+    }
+
+    public static JavaPairRDD<Integer, Integer> MakeEdgeRDD(JavaRDD<String> stringEdges){
+        return stringEdges.mapToPair((token) -> {
+                    String verteces[] = token.split(",");
+                    int vert1 = Integer.parseInt(verteces[0]);
+                    int vert2 = Integer.parseInt(verteces[1]);
+                    return new Tuple2<>(vert1, vert2);});
     }
 
     /**
