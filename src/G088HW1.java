@@ -51,47 +51,10 @@ public class G088HW1 {
 
     static final int p = 8191; // constant used to calculate hash function
 
-    public static Long CountTriangles(Iterator<Tuple2<Integer, Integer>> edgeSet) {
-        HashMap<Integer, HashMap<Integer,Boolean>> adjacencyLists = new HashMap<>();
-        int i = 0;
-        while (edgeSet.hasNext()) {
-            Tuple2<Integer,Integer> edge = edgeSet.next();
-            int u = edge._1();
-            int v = edge._2();
-            HashMap<Integer,Boolean> uAdj = adjacencyLists.get(u);
-            HashMap<Integer,Boolean> vAdj = adjacencyLists.get(v);
-            if (uAdj == null) {uAdj = new HashMap<>();}
-            uAdj.put(v,true);
-            adjacencyLists.put(u,uAdj);
-            if (vAdj == null) {vAdj = new HashMap<>();}
-            vAdj.put(u,true);
-            adjacencyLists.put(v,vAdj);
-            i++;
-        }
-        Long numTriangles = 0L;
-        for (int u : adjacencyLists.keySet()) {
-            HashMap<Integer,Boolean> uAdj = adjacencyLists.get(u);
-            for (int v : uAdj.keySet()) {
-                if (v>u) {
-                    HashMap<Integer,Boolean> vAdj = adjacencyLists.get(v);
-                    for (int w : vAdj.keySet()) {
-                        if (w>v && (uAdj.get(w)!=null)) numTriangles++;
-                    }
-                }
-            }
-        }
-        return numTriangles;
-    }
-
-
-
-
-
     public static Long CountTriangles(ArrayList<Tuple2<Integer, Integer>> edgeSet) {
         if (edgeSet.size()<3) return 0L;
         HashMap<Integer, HashMap<Integer,Boolean>> adjacencyLists = new HashMap<>();
-        int i = 0;
-        for (i = 0; i < edgeSet.size(); i++) {
+        for (int i = 0; i < edgeSet.size(); i++) {
             Tuple2<Integer,Integer> edge = edgeSet.get(i);
             int u = edge._1();
             int v = edge._2();
@@ -145,9 +108,12 @@ public class G088HW1 {
 
     public static long MR_ApproxTCwithSparkPartitions(int c, JavaPairRDD<Integer, Integer> edges){
         return edges.mapPartitions((edge) ->{
-
+            ArrayList<Tuple2<Integer, Integer>> temp = new ArrayList<>();
+            while (edge.hasNext()){
+                temp.add(edge.next());
+            }
             ArrayList<Long> pair = new ArrayList<>();
-            pair.add(CountTriangles(edge));
+            pair.add(CountTriangles(temp));
 
             return pair.iterator();
         }).reduce((x, y) -> x + y) * c * c;
