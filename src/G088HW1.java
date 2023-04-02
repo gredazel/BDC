@@ -81,6 +81,13 @@ public class G088HW1 {
         }
         return numTriangles;
     }
+
+    /**
+     * ALGORITHM 1
+     * @param c number of partitions
+     * @param edges JavaPairRDD containing all edges
+     * @return approxiamtion of triangles number
+     */
     public static long MR_ApproxTCwithNodeColors(int c, JavaPairRDD<Integer, Integer> edges) {
         Random rand = new Random();
         int a = rand.nextInt(p - 1) + 1;
@@ -106,6 +113,12 @@ public class G088HW1 {
         return totTriangles *c *c;
     }
 
+    /**
+     * ALGORITHM 2
+     * @param c number of partitions
+     * @param edges JavaPairRDD conteining all the edges
+     * @return approximations of triangles number
+     */
     public static long MR_ApproxTCwithSparkPartitions(int c, JavaPairRDD<Integer, Integer> edges){
         return edges.mapPartitions((edge) ->{
             ArrayList<Tuple2<Integer, Integer>> temp = new ArrayList<>();
@@ -119,6 +132,11 @@ public class G088HW1 {
         }).reduce((x, y) -> x + y) * c * c;
     }
 
+    /**
+     * Method to convert into JavaPairRDD a JavaRDD (in this case the edges RDD)
+     * @param stringEdges input RDD
+     * @return conversion to JavaPairRDD
+     */
     public static JavaPairRDD<Integer, Integer> MakeEdgeRDD(JavaRDD<String> stringEdges){
         return stringEdges.mapToPair((token) -> {
                     String verteces[] = token.split(",");
