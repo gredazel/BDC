@@ -19,6 +19,7 @@ public class G088HW2 {
         }
         int C = Integer.parseInt(args[0]);
         int R = Integer.parseInt(args[1]);
+        int F = Integer.parseInt(args[2]);
         String filepath = args[2];
         SparkConf conf = new SparkConf(true).setAppName("Triangles");
         JavaSparkContext sc = new JavaSparkContext(conf);
@@ -32,21 +33,24 @@ public class G088HW2 {
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
 
-        //fill array with results of R runs and calculate average time of node colouring
-        ArrayList<Long> ColorApprox = new ArrayList<>();
-        long avgTime = System.currentTimeMillis();
-        for (int i = 0; i < R; i++){
-            ColorApprox.add(MR_ApproxTCwithNodeColors(C, edges));
+        if( F == 0) {
+            //fill array with results of R runs and calculate average time of node colouring
+            ArrayList<Long> ColorApprox = new ArrayList<>();
+            long avgTime = System.currentTimeMillis();
+            for (int i = 0; i < R; i++) {
+                ColorApprox.add(MR_ApproxTCwithNodeColors(C, edges));
+            }
+            avgTime = System.currentTimeMillis() - avgTime;
+            Collections.sort(ColorApprox);
+            avgTime /= R;
+
+
+            System.out.println("Approximation through node coloring");
+            System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R / 2));
+            System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
         }
-        avgTime = System.currentTimeMillis() - avgTime;
-        Collections.sort(ColorApprox);
-        avgTime /= R;
 
-
-        System.out.println("Approximation through node coloring");
-        System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
-        System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
-
+        //if(F == 1 ){ // TO IMPLEMENT !!! }
     }
 
     public static Long CountTriangles(ArrayList<Tuple2<Integer, Integer>> edgeSet) {
