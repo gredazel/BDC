@@ -2,6 +2,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import scala.Int;
 import scala.Tuple2;
 import scala.Tuple3;
 
@@ -19,33 +20,52 @@ public class G088HW2 {
         }
         int C = Integer.parseInt(args[0]);
         int R = Integer.parseInt(args[1]);
-        String filepath = args[2];
+        int F = Integer.parseInt(args[2]);
+        String filepath = args[3];
+
         SparkConf conf = new SparkConf(true).setAppName("Triangles");
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
 
         //convert string RDD into JavaPairRDD<Integer, Integer>
-        JavaPairRDD<Integer, Integer> edges = MakeEdgeRDD(sc.textFile(filepath)).repartition(16).cache();
+        JavaPairRDD<Integer, Integer> edges = MakeEdgeRDD(sc.textFile(filepath)).repartition(32).cache();
 
         System.out.println("Dataset = " + filepath);
         System.out.println("Number of edges = " + edges.count());
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
 
-        //fill array with results of R runs and calculate average time of node colouring
-        ArrayList<Long> ColorApprox = new ArrayList<>();
-        long avgTime = System.currentTimeMillis();
-        for (int i = 0; i < R; i++){
-            ColorApprox.add(MR_ApproxTCwithNodeColors(C, edges));
+        if(F == 0){
+            //fill array with results of R runs and calculate average time of node colouring
+            ArrayList<Long> ColorApprox = new ArrayList<>();
+            long avgTime = System.currentTimeMillis();
+            for (int i = 0; i < R; i++){
+                ColorApprox.add(MR_ApproxTCwithNodeColors(C, edges));
+            }
+            avgTime = System.currentTimeMillis() - avgTime;
+            Collections.sort(ColorApprox);
+            avgTime /= R;
+
+            System.out.println("Approximation algorithm with node coloring");
+            System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
+            System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
+        }else if(F ==1) {
+            long avgTime = System.currentTimeMillis();
+            long out = 0L;
+            for (int i = 0; i < R; i++){
+                out = MR_ExactTC(edges, C);
+            }
+            avgTime = System.currentTimeMillis() - avgTime;
+            avgTime /= R;
+            System.out.println("Exact algorithm with node coloring");
+            System.out.println("- Number of triangles  = " + out);
+            System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
+        }else {
+            System.out.println("Error, F value must be either 1 or 0, current: " + F);
+            return;
         }
-        avgTime = System.currentTimeMillis() - avgTime;
-        Collections.sort(ColorApprox);
-        avgTime /= R;
 
 
-        System.out.println("Approximation through node coloring");
-        System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
-        System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
 
     }
 
@@ -152,12 +172,35 @@ public class G088HW2 {
 
     }
 
-    public int MR_ExactTC(JavaPairRDD<Integer, Integer> edge, int c){
-        int exactCount = 0;
-        //
-        // TO IMPLEMENT !!!!!
-        //
-        return exactCount;
+    public static long MR_ExactTC(JavaPairRDD<Integer, Integer> edges, int c){
+        Random rand = new Random();
+        int a = rand.nextInt(p - 1) + 1;
+        int b = rand.nextInt(p);
+        JavaPairRDD<Tuple3<Integer, Integer, Integer>, Tuple2<Integer, Integer>> map1 = edges.flatMapToPair((token) -> {
+            ArrayList<Tuple2<Tuple3<Integer, Integer, Integer>, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
+            int color1 = hashFunct(c, token._1(), a, b);
+            int color2 = hashFunct(c, token._2(), a, b);;
+
+            for(int i = 0; i < c; i++){
+                ArrayList<Integer> colors = new ArrayList<>();
+                colors.add(color1);
+                colors.add(color2);
+                colors.add(i);
+                Collections.sort(colors);
+                edgesSets.add(new Tuple2<>(new Tuple3<>(colors.get(0), colors.get(1), colors.get(2)), new Tuple2<>(token._1(), token._2())));
+            }
+            return edgesSets.iterator();
+        });
+        JavaPairRDD<Integer, Long> reduce1 = map1.groupByKey().mapToPair((e)->{
+            ArrayList<Tuple2<Integer, Integer>> same_key_edges = new ArrayList<>();
+            for(Tuple2<Integer, Integer> elem : e._2()){
+                same_key_edges.add(elem);
+            }
+
+            return new Tuple2<>(0, CountTriangles2(same_key_edges, e._1(), a, b, p, c));
+        });
+        long out = reduce1.reduceByKey((x,y)->(x + y)).first()._2();
+        return out;
     }
 
     /**
@@ -182,7 +225,7 @@ public class G088HW2 {
      * @param b random integer in [0, p-1] fixed for every run
      * @return hash function's value of vertex u
      */
-    private static int hashFunct(int c, Integer u, int a, int b){
+    private static int hashFunct(int c, int u, int a, int b){
         return (((a*u)+b)%p)%c;
     }
 }
