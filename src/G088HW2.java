@@ -34,7 +34,7 @@ public class G088HW2 {
         System.out.println("Number of edges = " + edges.count());
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
-
+        
         if(F == 0){
             //fill array with results of R runs and calculate average time of node colouring
             ArrayList<Long> ColorApprox = new ArrayList<>();
@@ -45,7 +45,6 @@ public class G088HW2 {
             avgTime = System.currentTimeMillis() - avgTime;
             Collections.sort(ColorApprox);
             avgTime /= R;
-
             System.out.println("Approximation algorithm with node coloring");
             System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
             System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
@@ -64,9 +63,6 @@ public class G088HW2 {
             System.out.println("Error, F value must be either 1 or 0, current: " + F);
             return;
         }
-
-
-
     }
 
     public static Long CountTriangles(ArrayList<Tuple2<Integer, Integer>> edgeSet) {
