@@ -2,7 +2,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import scala.Int;
 import scala.Tuple2;
 import scala.Tuple3;
 
@@ -34,7 +33,7 @@ public class G088HW2 {
         System.out.println("Number of edges = " + edges.count());
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
-        
+
         if(F == 0){
             //fill array with results of R runs and calculate average time of node colouring
             ArrayList<Long> ColorApprox = new ArrayList<>();
@@ -61,7 +60,6 @@ public class G088HW2 {
             System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
         }else {
             System.out.println("Error, F value must be either 1 or 0, current: " + F);
-            return;
         }
     }
 
@@ -152,8 +150,8 @@ public class G088HW2 {
         return edges.flatMapToPair((token) -> {
 
             ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
-            int color1 = hashFunct(c, token._1(), a, b);
-            int color2 = hashFunct(c, token._2(), a, b);;
+            int color1 = hashFunc(c, token._1(), a, b);
+            int color2 = hashFunc(c, token._2(), a, b);
             if (color1 == color2){
                 edgesSets.add(new Tuple2<>(color1, token));
             }
@@ -172,11 +170,10 @@ public class G088HW2 {
         Random rand = new Random();
         int a = rand.nextInt(p - 1) + 1;
         int b = rand.nextInt(p);
-        JavaPairRDD<Tuple3<Integer, Integer, Integer>, Tuple2<Integer, Integer>> map1 = edges.flatMapToPair((token) -> {
+        return edges.flatMapToPair((token) -> {
             ArrayList<Tuple2<Tuple3<Integer, Integer, Integer>, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
-            int color1 = hashFunct(c, token._1(), a, b);
-            int color2 = hashFunct(c, token._2(), a, b);;
-
+            int color1 = hashFunc(c, token._1(), a, b);
+            int color2 = hashFunc(c, token._2(), a, b);
             for(int i = 0; i < c; i++){
                 ArrayList<Integer> colors = new ArrayList<>();
                 colors.add(color1);
@@ -186,17 +183,14 @@ public class G088HW2 {
                 edgesSets.add(new Tuple2<>(new Tuple3<>(colors.get(0), colors.get(1), colors.get(2)), new Tuple2<>(token._1(), token._2())));
             }
             return edgesSets.iterator();
-        });
-        JavaPairRDD<Integer, Long> reduce1 = map1.groupByKey().mapToPair((e)->{
+            }).groupByKey().mapToPair((e)->{
             ArrayList<Tuple2<Integer, Integer>> same_key_edges = new ArrayList<>();
             for(Tuple2<Integer, Integer> elem : e._2()){
                 same_key_edges.add(elem);
             }
 
             return new Tuple2<>(0, CountTriangles2(same_key_edges, e._1(), a, b, p, c));
-        });
-        long out = reduce1.reduceByKey((x,y)->(x + y)).first()._2();
-        return out;
+        }).reduceByKey((x,y)->(x + y)).first()._2();
     }
 
     /**
@@ -207,9 +201,9 @@ public class G088HW2 {
      */
     public static JavaPairRDD<Integer, Integer> MakeEdgeRDD(JavaRDD<String> stringEdges){
         return stringEdges.mapToPair((token) -> {
-            String verteces[] = token.split(",");
-            int vert1 = Integer.parseInt(verteces[0]);
-            int vert2 = Integer.parseInt(verteces[1]);
+            String[] vertexes = token.split(",");
+            int vert1 = Integer.parseInt(vertexes[0]);
+            int vert2 = Integer.parseInt(vertexes[1]);
             return new Tuple2<>(vert1, vert2);});
     }
 
@@ -221,7 +215,7 @@ public class G088HW2 {
      * @param b random integer in [0, p-1] fixed for every run
      * @return hash function's value of vertex u
      */
-    private static int hashFunct(int c, int u, int a, int b){
-        return (((a*u)+b)%p)%c;
+    private static int hashFunc(int c, int u, int a, int b){
+        return (int) (((((long)a*(long)u)+b)%(long)p)%(long)c);
     }
 }
