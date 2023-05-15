@@ -167,6 +167,12 @@ public class G088HW2 {
 
     }
 
+    /**
+     * ALGORITHM 2
+     * @param edges input RDD of edges
+     * @param c number of colors
+     * @return Exact number of triangles
+     */
     public static long MR_ExactTC(JavaPairRDD<Integer, Integer> edges, int c){
         Random rand = new Random();
         int a = rand.nextInt(p - 1) + 1;
