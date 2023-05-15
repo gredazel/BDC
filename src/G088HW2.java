@@ -23,6 +23,7 @@ public class G088HW2 {
         String filepath = args[3];
 
         SparkConf conf = new SparkConf(true).setAppName("Triangles");
+        conf.set("spark.locality.wait", "0s");
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
 
