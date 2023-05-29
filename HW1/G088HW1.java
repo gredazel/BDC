@@ -1,14 +1,9 @@
-import javassist.bytecode.Descriptor;
-import org.apache.hadoop.mapred.Task;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import scala.Int;
 import scala.Tuple2;
-import spire.macros.Auto;
-
-import javax.swing.text.html.HTMLDocument;
 import java.util.*;
 
 public class G088HW1 {
@@ -24,26 +19,34 @@ public class G088HW1 {
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
 
+        //convert string RDD into JavaPairRDD<Integer, Integer>
         JavaPairRDD<Integer, Integer> docs = MakeEdgeRDD(sc.textFile(filepath)).repartition(C).cache();
 
         System.out.println("Dataset = " + filepath);
         System.out.println("Number of edges = " + docs.count());
         System.out.println("Number of colors = " + C);
         System.out.println("Number of repetitions = " + R);
-        ArrayList<Long> ColorApprox = new ArrayList<Long>();
+
+        //fill array with results of R runs and calculate average time of node colouring
+        ArrayList<Long> ColorApprox = new ArrayList<>();
         long avgTime = System.currentTimeMillis();
         for (int i = 0; i < R; i++){
             ColorApprox.add(MR_ApproxTCwithNodeColors(C, docs));
         }
-        Collections.sort(ColorApprox);
         avgTime = System.currentTimeMillis() - avgTime;
+        Collections.sort(ColorApprox);
         avgTime /= R;
+
+
         System.out.println("Approximation through node coloring");
         System.out.println("- Number of triangles (median over " + R + " runs) = " + ColorApprox.get(R/2));
         System.out.println("- Running time (average over " + R + " runs) = " + avgTime + "ms");
+
+        //run algorithm 2 and measure time
         long Time2 = System.currentTimeMillis();
         long repartitioned = MR_ApproxTCwithSparkPartitions(C, docs);
         Time2 = System.currentTimeMillis() - Time2;
+
         System.out.println("Approximation through Spark partitions");
         System.out.println("- Number of triangles = " + repartitioned);
         System.out.println("- Running time = " + Time2 + "ms");
@@ -86,14 +89,14 @@ public class G088HW1 {
      * ALGORITHM 1
      * @param c number of partitions
      * @param edges JavaPairRDD containing all edges
-     * @return approxiamtion of triangles number
+     * @return approximation of triangles number using color approximation
      */
     public static long MR_ApproxTCwithNodeColors(int c, JavaPairRDD<Integer, Integer> edges) {
         Random rand = new Random();
         int a = rand.nextInt(p - 1) + 1;
         int b = rand.nextInt(p);
 
-        long totTriangles = edges.flatMapToPair((token) -> {
+        return edges.flatMapToPair((token) -> {
 
             ArrayList<Tuple2<Integer, Tuple2<Integer, Integer>>> edgesSets = new ArrayList<>();
             int color1 = hashFunct(c, token._1(), a, b);
@@ -108,16 +111,15 @@ public class G088HW1 {
                 E.add(elem);
             }
             return new Tuple2<>(0, CountTriangles(E));
-        }).reduceByKey((x,y) -> x + y).first()._2();
+        }).reduceByKey((x,y) -> x + y).first()._2() *c *c;
 
-        return totTriangles *c *c;
     }
 
     /**
      * ALGORITHM 2
      * @param c number of partitions
      * @param edges JavaPairRDD conteining all the edges
-     * @return approximations of triangles number
+     * @return approximations of triangles number calculated with spark partitions
      */
     public static long MR_ApproxTCwithSparkPartitions(int c, JavaPairRDD<Integer, Integer> edges){
         return edges.mapPartitions((edge) ->{
@@ -134,8 +136,9 @@ public class G088HW1 {
 
     /**
      * Method to convert into JavaPairRDD a JavaRDD (in this case the edges RDD)
+     * @param stringEdges input RDD of strings
      * @param stringEdges input RDD
-     * @return conversion to JavaPairRDD
+     * @return conversion to JavaPairRDD<Integer, Integer>
      */
     public static JavaPairRDD<Integer, Integer> MakeEdgeRDD(JavaRDD<String> stringEdges){
         return stringEdges.mapToPair((token) -> {

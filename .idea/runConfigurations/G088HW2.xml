@@ -2,7 +2,7 @@
   <configuration default="false" name="G088HW2" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="G088HW2" />
     <module name="BDC.main" />
-    <option name="PROGRAM_PARAMETERS" value="2 1 1 youtube.txt" />
+    <option name="PROGRAM_PARAMETERS" value="2 1 0 youtube.txt" />
     <option name="VM_PARAMETERS" value="-Dspark.master=&quot;local[*]&quot;" />
     <method v="2">
       <option name="Make" enabled="true" />
