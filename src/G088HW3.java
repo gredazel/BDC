@@ -6,10 +6,7 @@ import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import scala.Tuple2;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -18,6 +15,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class G088HW3 {
 
     public static final int THRESHOLD = 10000000;
+    static final int p = 8191; // constant used to calculate hash function
+
 
     public static void main(String[] args) throws Exception {
         if (args.length < 6) {
@@ -31,6 +30,20 @@ public class G088HW3 {
         K = Integer.parseInt(args[4]);
         portExp = Integer.parseInt(args[5]);
 
+        int[] a1 = new int[D];
+        int[] b1 = new int[D];
+        int[] a2 = new int[D];
+        int[] b2 = new int[D];
+
+        Random rand = new Random();
+
+        for(int i = 0; i < D; i++){
+            a1[i] = rand.nextInt(p - 1) + 1;
+            b1[i] = rand.nextInt(p);
+            a2[i] = rand.nextInt(p - 1) + 1;
+            b2[i] = rand.nextInt(p);
+        }
+
         System.out.println("D: " + D);
         System.out.println("W: " + W);
         System.out.println("left: " + left);
@@ -41,9 +54,6 @@ public class G088HW3 {
         SparkConf conf = new SparkConf(true)
                 .setMaster("local[*]") // remove this line if running on the cluster
                 .setAppName("DistinctExample");
-
-
-
 
         // Here, with the duration you can control how large to make your batches.
         // Beware that the data generator we are using is very fast, so the suggestion
@@ -81,6 +91,8 @@ public class G088HW3 {
         long[] streamLength = new long[1]; // Stream length (an array to be passed by reference)
         streamLength[0]=0L;
         HashMap<Long, Long> histogram = new HashMap<>(); // Hash Table for the distinct elements
+
+        long[][] count_sk = new long[D][W];
 
         // CODE TO PROCESS AN UNBOUNDED STREAM OF DATA IN BATCHES
         sc.socketTextStream("algo.dei.unipd.it", portExp, StorageLevels.MEMORY_AND_DISK)
@@ -133,4 +145,25 @@ public class G088HW3 {
         }
         System.out.println("Largest item = " + max);
     }
+
+    /**
+     * Calculate the value of the hash function of a given integer u
+     * @param d number of possible output values
+     * @param u value of the considered integer
+     * @param a random integer in [1, p-1] fixed for every run
+     * @param b random integer in [0, p-1] fixed for every run
+     * @return hash function's value of integer u
+     */
+    private static int hashFunc(int d, int u, int a, int b){
+        return (int) (((((long)a*(long)u)+b)%(long)p)%(long)d);
+    }
+
+    private static int hashFunc2(int u, int a, int b){
+        int out = (int)(((((long)a*(long)u)+b)%(long)p)%2L);
+        if (out == 0)
+            return -1;
+        else
+            return 1;
+    }
+
 }
