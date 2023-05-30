@@ -17,25 +17,39 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class G088HW3 {
 
-    // After how many items should we stop?
     public static final int THRESHOLD = 10000000;
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            throw new IllegalArgumentException("USAGE: port");
+        if (args.length < 6) {
+            throw new IllegalArgumentException("USAGE: D W left right K portExp");
         }
-        // IMPORTANT: when running locally, it is *fundamental* that the
-        // `master` setting is "local[*]" or "local[n]" with n > 1, otherwise
-        // there will be no processor running the streaming computation and your
-        // code will crash with an out of memory (because the input keeps accumulating).
+        int D, W, left, right, K, portExp;
+        D = Integer.parseInt(args[0]);
+        W = Integer.parseInt(args[1]);
+        left = Integer.parseInt(args[2]);
+        right = Integer.parseInt(args[3]);
+        K = Integer.parseInt(args[4]);
+        portExp = Integer.parseInt(args[5]);
+
+        System.out.println("D: " + D);
+        System.out.println("W: " + W);
+        System.out.println("left: " + left);
+        System.out.println("right: " + right);
+        System.out.println("K: " + K);
+        System.out.println("portExp: " + portExp);
+
         SparkConf conf = new SparkConf(true)
                 .setMaster("local[*]") // remove this line if running on the cluster
                 .setAppName("DistinctExample");
+
+
+
 
         // Here, with the duration you can control how large to make your batches.
         // Beware that the data generator we are using is very fast, so the suggestion
         // is to use batches of less than a second, otherwise you might exhaust the
         // JVM memory.
+
         JavaStreamingContext sc = new JavaStreamingContext(conf, Durations.milliseconds(100));
         sc.sparkContext().setLogLevel("ERROR");
 
@@ -50,6 +64,7 @@ public class G088HW3 {
         // thread to shut down the computation.
         // We cannot call `sc.stop()` directly in `foreachRDD` because it might lead
         // to deadlocks.
+
         Semaphore stoppingSemaphore = new Semaphore(1);
         stoppingSemaphore.acquire();
 
@@ -57,7 +72,6 @@ public class G088HW3 {
         // INPUT READING
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        int portExp = Integer.parseInt(args[0]);
         System.out.println("Receiving data from port = " + portExp);
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
