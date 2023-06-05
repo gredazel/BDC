@@ -1,16 +1,15 @@
-import org.apache.hadoop.util.hash.Hash;
+
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.StorageLevels;
 import org.apache.spark.streaming.Durations;
-import org.apache.spark.streaming.api.java.JavaPairDStream;
+
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import scala.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+
 
 public class G088HW3 {
 
@@ -102,18 +101,41 @@ public class G088HW3 {
                 .foreachRDD((batch, time) -> {
                     // this is working on the batch at time `time`.
                     long batchSize = batch.count();
+                    //operazione da fare il prima possibile per far si che non ci siano errori
+                    //per via di piu foreachRDD eseguiti contemporaneamente
+                    long currLen = streamLength[0];
                     streamLength[0] += batchSize;
+
+                    long start = Long.max(0L, left - currLen);
+                    long end = Long.min(batchSize, right - currLen);
+
+                    Iterable<Long> b = batch.mapToPair(str -> new Tuple2<Long, Long>(0L, Long.parseLong(str))).groupByKey().first()._2();
+                    ArrayList<Long> c = new ArrayList<>();
+                    b.forEach(c::add);
+                    for(long j = start; j < end; j++){
+                        for(int i = 0; i < D; i++){
+                            count_sk[i][hashFunc(i, c.get((int)j), a1[i], b1[i])] += hashFunc2(c.get((int)j), a2[i], b2[i]);
+                        }
+                    }
+
+
                     // Extract the distinct items from the batch
                     Map<Long, Long> batchItems = batch
                             .mapToPair(s -> new Tuple2<>(Long.parseLong(s), 1L))
-                            .reduceByKey((i1, i2) -> 1L)
+                            .reduceByKey((i1, i2) -> i1 + i2)
                             .collectAsMap();
+
+
                     // Update the streaming state
                     for (Map.Entry<Long, Long> pair : batchItems.entrySet()) {
                         if (!histogram.containsKey(pair.getKey())) {
-                            histogram.put(pair.getKey(), 1L);
+                            histogram.put(pair.getKey(), pair.getValue());
+                        } else {
+                            histogram.replace(pair.getKey(), pair.getValue() + histogram.get(pair.getKey()).longValue());   //compute number of elements
                         }
                     }
+
+
                     // If we wanted, here we could run some additional code on the global histogram
                     if (batchSize>0) {
                         System.out.println("Batch size at time [" + time + "] is: " + batchSize);
@@ -154,16 +176,33 @@ public class G088HW3 {
      * @param b random integer in [0, p-1] fixed for every run
      * @return hash function's value of integer u
      */
-    private static int hashFunc(int d, int u, int a, int b){
+    private static int hashFunc(long d, long u, long a, long b){
         return (int) (((((long)a*(long)u)+b)%(long)p)%(long)d);
     }
 
-    private static int hashFunc2(int u, int a, int b){
+    private static int hashFunc2(long u, long a, long b){
         int out = (int)(((((long)a*(long)u)+b)%(long)p)%2L);
         if (out == 0)
             return -1;
         else
             return 1;
+    }
+
+    void countSketch(Map<Long, Long> batchItems){
+        for (Map.Entry<Long, Long> pair : batchItems.entrySet()) {
+            for(int i = 0; i < D; i++){
+                count_sk[i][hashFunc(i, pair.getKey(), a1[i], b1[i])] += hashFunc2(pair.getKey(), a2[i], b2[i]) * pair.getValue();
+            }
+        }
+    }
+
+    long approximate_frequency(long u){
+        ArrayList<Long> approximations = new ArrayList<Long>();
+        for(int j = 0; j < D; j++){
+            long approx = hashFunc2(u, a2[j], b2[j])*count_sk[j, hashFunc(D, u, a1[j], b1[j])];
+        }
+        Collections.sort(approximations);
+        return approximations[approximations.size()/2];
     }
 
 }
