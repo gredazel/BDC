@@ -2,7 +2,7 @@
   <configuration default="false" name="G088HW3" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="G088HW3" />
     <module name="BDC.main" />
-    <option name="PROGRAM_PARAMETERS" value="15 1500 1 8000 30 8888" />
+    <option name="PROGRAM_PARAMETERS" value="15 30 1 80 30 8888" />
     <option name="VM_PARAMETERS" value="-Dspark.master=&quot;local[*]&quot;" />
     <method v="2">
       <option name="Make" enabled="true" />

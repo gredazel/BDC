@@ -79,8 +79,10 @@ public class G088HW3 {
                         long lrvals = 0L;
 
                         for (Map.Entry<Long, Long> pair : batchItems.entrySet()) {
+
                             if(pair.getKey() <= right && pair.getKey() >= left){
-                                lrvals += 1L;
+                                lrvals += pair.getValue();
+
                                 if (!LRHistogram.containsKey(pair.getKey())) {
                                     LRHistogram.put(pair.getKey(), pair.getValue());
                                 }else {
@@ -89,7 +91,7 @@ public class G088HW3 {
 
                                 //WD count sketch
                                 for (int i = 0; i < D; i++) {
-                                    count_sk[i][hashFunc(W, pair.getKey(), a1[i], b1[i])] += hashFunc2(pair.getKey(), a2[i], b2[i]) * pair.getValue();
+                                    count_sk[i][hashFunc(W, pair.getKey(), a1[i], b1[i])] += (hashFunc2(pair.getKey(), a2[i], b2[i]) * pair.getValue());
                                 }
 
                             }
@@ -123,16 +125,17 @@ public class G088HW3 {
 
         //CALCULATE TRUE SECOND MOMENT
         for(Map.Entry<Long, Long> pair : LRHistogram.entrySet()){
-            trueF2 += (double)(pair.getValue()^2)/(double) LRlenght[0];
+
+            trueF2 += (double)(pair.getValue()^2);
+
         }
         //CALCULATE APRX SECOND MOMENT
-
 
         ArrayList<Double> approximations = new ArrayList<>();
         for(int j = 0; j < D; j++){
             double val = 0.0;
             for (int x = 0; x < W; x++){
-                val += count_sk[j][x]*count_sk[j][x]/(double)LRlenght[0];
+                val += count_sk[j][x]*count_sk[j][x];
             }
             approximations.add(val);
         }
@@ -140,12 +143,13 @@ public class G088HW3 {
 
         aprxF2 = approximations.get(approximations.size()/2);
 
-
-        System.out.println("True F2 = " + trueF2);
+        System.out.println("True F2 =   " + trueF2);
         System.out.println("Approx F2 = " + aprxF2);
         // COMPUTE AND PRINT FINAL STATISTICS
         System.out.println("Number of items processed = " + streamLength[0]);
         System.out.println("Number of distinct items = " + histogram.size());
+        System.out.println("Number of items processed = " + LRlenght[0]);
+        System.out.println("Number of distinct items processed = " + LRHistogram.size());
         long max = 0L;
         for (Long key : histogram.keySet()) {
             if (key > max) {max = key;}
