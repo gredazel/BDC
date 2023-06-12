@@ -32,7 +32,6 @@ public class G088HW3 {
         int[] b1 = new int[D];
         int[] a2 = new int[D];
         int[] b2 = new int[D];
-        System.out.println("a");
         Random rand = new Random();
 
         for(int i = 0; i < D; i++){
@@ -79,10 +78,8 @@ public class G088HW3 {
                         long lrvals = 0L;
 
                         for (Map.Entry<Long, Long> pair : batchItems.entrySet()) {
-
                             if(pair.getKey() <= right && pair.getKey() >= left){
                                 lrvals += pair.getValue();
-
                                 if (!LRHistogram.containsKey(pair.getKey())) {
                                     LRHistogram.put(pair.getKey(), pair.getValue());
                                 }else {
@@ -106,31 +103,35 @@ public class G088HW3 {
 
                         if (streamLength[0] >= THRESHOLD) {
                             stoppingSemaphore.release();
-                            System.out.println("released");
+                            //System.out.println("released");
                         }
                     }
                 });
 
         // MANAGING STREAMING SPARK CONTEXT
-        System.out.println("Starting streaming engine");
+        //System.out.println("Starting streaming engine");
         sc.start();
-        System.out.println("Waiting for shutdown condition");
+        //System.out.println("Waiting for shutdown condition");
         stoppingSemaphore.acquire();
-        System.out.println("Stopping the streaming engine");
+        //System.out.println("Stopping the streaming engine");
         sc.stop(false, false);
-        System.out.println("Streaming engine stopped");
+        //System.out.println("Streaming engine stopped");
 
         double trueF2 = 0.0;
-        double aprxF2 = 0.0;
 
-        //CALCULATE TRUE SECOND MOMENT
+        System.out.println("Total number of items = " + streamLength[0]);
+        System.out.println("Total number of items in [" + left + "," + right + "] = " + LRlenght[0]);
+        System.out.println("Number of distinct items in [" + left + "," + right + "] = " + LRHistogram.size());
+
+        // CALCULATE TRUE SECOND MOMENT
         for(Map.Entry<Long, Long> pair : LRHistogram.entrySet()){
-
-            trueF2 += (double)(pair.getValue()^2);
-
+            trueF2 += (double)(pair.getValue() * pair.getValue());
         }
-        //CALCULATE APRX SECOND MOMENT
+        trueF2 /= (double) (LRlenght[0] * LRlenght[0]);
 
+        System.out.println("True F2 = " + trueF2);
+
+        //CALCULATE APRX SECOND MOMENT
         ArrayList<Double> approximations = new ArrayList<>();
         for(int j = 0; j < D; j++){
             double val = 0.0;
@@ -140,22 +141,30 @@ public class G088HW3 {
             approximations.add(val);
         }
         Collections.sort(approximations);
+        double aprxF2 = approximations.get(approximations.size()/2);
+        aprxF2 /= (double)(LRlenght[0] * LRlenght[0]);
 
-        aprxF2 = approximations.get(approximations.size()/2);
-
-        System.out.println("True F2 =   " + trueF2);
         System.out.println("Approx F2 = " + aprxF2);
-        // COMPUTE AND PRINT FINAL STATISTICS
-        System.out.println("Number of items processed = " + streamLength[0]);
-        System.out.println("Number of distinct items = " + histogram.size());
-        System.out.println("Number of items processed = " + LRlenght[0]);
-        System.out.println("Number of distinct items processed = " + LRHistogram.size());
-        long max = 0L;
-        for (Long key : histogram.keySet()) {
-            if (key > max) {max = key;}
-        }
-        System.out.println("Largest item = " + max);
 
+        // AVERAGE RELATIVE ERROR
+        List<Map.Entry<Long, Long>> entries = new ArrayList<>(LRHistogram.entrySet());
+        entries.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
+        double sumRelativeErrors = 0.0;
+        for(int i = 0; i < K; i++){
+            ArrayList<Long> frequency_approximations = new ArrayList<>();
+            for (int d = 0; d < D; d++){
+                long val = hashFunc2(entries.get(i).getKey(), a2[d], b2[d]) * count_sk[d][hashFunc(W, entries.get(i).getKey(), a1[d], b1[d])];
+                frequency_approximations.add(val);
+            }
+            long aprxFrequency = frequency_approximations.get(frequency_approximations.size()/2);
+            sumRelativeErrors += ((double)(Math.abs(entries.get(i).getValue() - aprxFrequency)))/(double)(entries.get(i).getValue());
+            if(K <= 20)
+                System.out.println("Item " + entries.get(i).getKey() + " Freq = " + entries.get(i).getValue() + " Est. Freq = "+ aprxFrequency);
+        }
+        double averageRelativeError = sumRelativeErrors / K;
+
+        System.out.println("Avg err for top " + K + " = " + averageRelativeError);
+        System.out.println("F2 " + trueF2 + " F2 Estimate " + aprxF2);
     }
 
     /**
