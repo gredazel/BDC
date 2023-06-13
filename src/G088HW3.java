@@ -129,8 +129,6 @@ public class G088HW3 {
         }
         trueF2 /= (double) (LRlenght[0] * LRlenght[0]);
 
-        System.out.println("True F2 = " + trueF2);
-
         //CALCULATE APRX SECOND MOMENT
         ArrayList<Double> approximations = new ArrayList<>();
         for(int j = 0; j < D; j++){
@@ -143,8 +141,6 @@ public class G088HW3 {
         Collections.sort(approximations);
         double aprxF2 = approximations.get(approximations.size()/2);
         aprxF2 /= (double)(LRlenght[0] * LRlenght[0]);
-
-        System.out.println("Approx F2 = " + aprxF2);
 
         // AVERAGE RELATIVE ERROR
         List<Map.Entry<Long, Long>> entries = new ArrayList<>(LRHistogram.entrySet());
